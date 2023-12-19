@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
+import './ExcelReader.css';
 
 function ExcelReader() {
     const [data, setData] = useState([]);
-    const [wastepaper, setWastepaper] = useState('');
     
-    const paperFunc = (data, sumIndex, minIndex, maxIndex) => {
+    const printFunc = (data, sumIndex, minIndex, maxIndex) => {
+        let mainItem = '';
         let costItem = '';
         data.forEach((el, index) => {
             if (index === sumIndex) {
                 for (const key in el) {
                     if (key === 'Стаття витрат') {
-                        costItem = el[key] + ': ';
+                        mainItem = el[key] + ': ';
                     }
                     if (key === 'Відхилення, грн') {
-                        costItem = costItem + ((el[key] > 0) ? 'Збільшення на ' : 'Зменшення на ') + el[key].toFixed(2) + ' за рахунок: ';
+                        mainItem = mainItem + ((el[key] > 0) ? 'Збільшення на ' : 'Зменшення на ') + el[key].toFixed(2) + ' грн. за рахунок:';
                     }
                 }
             }
@@ -22,57 +23,33 @@ function ExcelReader() {
         
         data.forEach((el, index) => {
             let item = '';
-            if (index > (minIndex - 1) && index < (maxIndex +1)) {
+            if (index > (minIndex - 1) && index < (maxIndex + 1)) {
                 for (const key in el) {
                     if (key === 'Стаття витрат') {
                         item = item + el[key];
                     }
                     if (key === 'Відхилення за рахунок ціни, грн') {
                         if (el[key] !== 0) {
-                            costItem = costItem + (el[key] > 0) 
-                            ? ('збільшення на ' + el[key].toFixed(2) + ` за рахунок зростання ціни на ${item}; `) 
-                            : ('зменшення на ' + el[key].toFixed(2) + ` за рахунок зниження ціни на ${item}; `);
+                            costItem = costItem + ((el[key].toFixed(2) > 0) 
+                            ? (' збільшення на ' + el[key].toFixed(2) + ` грн. внаслідок зростання ціни${(minIndex === sumIndex) ? '' : (' на ' + item)};`) 
+                            : (el[key].toFixed(2) < 0) 
+                            ? (' зменшення на ' + el[key].toFixed(2) + ` грн. внаслідок зниження ціни${(minIndex === sumIndex) ? '' : (' на ' + item)};`)
+                            : '');
                         }
                     }
                     if (key === 'Відхилення за рахунок норми, грн') {
                         if (el[key] !== 0) {
-                            costItem = costItem + (el[key] > 0) 
-                            ? ('збільшення на ' + el[key].toFixed(2) + ` за рахунок зростання норми на ${item}; `) 
-                            : ('зменшення на ' + el[key].toFixed(2) + ` за рахунок зниження норми на ${item}; `);
+                            costItem = costItem + ((el[key].toFixed(2) > 0) 
+                            ? (' збільшення на ' + el[key].toFixed(2) + ` грн. внаслідок зростання норми${(minIndex === sumIndex) ? '' : (' на ' + item)};`) 
+                            : (el[key].toFixed(2) > 0)
+                            ? (' зменшення на ' + el[key].toFixed(2) + ` грн. внаслідок зниження норми${(minIndex === sumIndex) ? '' : (' на ' + item)};`)
+                            : '');
                         }
                     }
                 }
             }
         });
-        return console.log(costItem);
-    }
-
-    const chemistryFunc = (data) => {
-        let chemistry = 'Хімія: ';
-        data.forEach((el, index) => {
-            if (index > 1 && index < 24) {
-                for (const key in el) {
-                    if (key === 'Відхилення, грн' && index === 23) {
-                        chemistry = chemistry + ((el[key] > 0) ? 'Збільшення на ' : 'Зменшення на ') + el[key].toFixed(2) + ' за рахунок: ';
-                    }
-                    if (key === 'Відхилення за рахунок ціни, грн') {
-                        if (el[key] !== 0) {
-                            chemistry = chemistry + ((el[key] > 0) 
-                            ? ('збільшення на ' + el[key].toFixed(2) + ' за рахунок зростання ціни; ') 
-                            : ('зменшення на ') + el[key].toFixed(2) + ' за рахунок зниження ціни; ');
-                        }
-                    }
-                    if (key === 'Відхилення за рахунок норми, грн') {
-                        if (el[key] !== 0) {
-                            chemistry = chemistry + ((el[key] > 0) 
-                            ? ('збільшення на ' + el[key].toFixed(2) + ' за рахунок зростання норми; ') 
-                            : ('зменшення на ') + el[key].toFixed(2) + ' за рахунок зниження норми; ');
-                        }
-                    }
-                }
-            }
-        });
-        return console.log(chemistry);
+        return (mainItem + costItem);
     }
     
     const handleFileUpload = e => {
@@ -88,7 +65,6 @@ function ExcelReader() {
             // конвертування в масив JSON
             const data = XLSX.utils.sheet_to_json(ws);
             setData(data);
-            paperFunc(data, 1, 1, 1);
             // виведення даних в консоль
             console.log(data);
         };
@@ -99,7 +75,14 @@ function ExcelReader() {
         <div>
             <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} />
             {/* Відображення даних, якщо потрібно */}
-            <pre>{JSON.stringify(data, null, 2)}</pre>
+            {/* <pre>{JSON.stringify(data, null, 2)}</pre> */}
+            <div className='result'>
+                {printFunc(data, 1, 1, 1)} <br/>
+                {printFunc(data, 23, 2, 22)} <br/>
+                {printFunc(data, 26, 24, 25)} <br/>
+                {printFunc(data, 35, 29, 34)} <br/>
+                {printFunc(data, 38, 36, 37)} <br/>
+            </div>
         </div>
     );
 }
